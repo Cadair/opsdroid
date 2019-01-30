@@ -26,7 +26,6 @@ class ConnectorTelegram(Connector):
         self.name = "telegram"
         self.opsdroid = opsdroid
         self.latest_update = None
-        self.default_room = None
         self.listening = True
         self.default_user = config.get("default-user", None)
         self.whitelisted_users = config.get("whitelisted-users", None)
@@ -162,19 +161,19 @@ class ConnectorTelegram(Connector):
             await asyncio.sleep(self.update_interval)
 
     @register_event(Message)
-    async def send_message(self, message, target=None):
+    async def send_message(self, message, target):
         """Respond with a message.
 
         Args:
             message (object): An instance of Message.
-            room (string, optional): Name of the room to respond to.
+            target (string): Name of the room to respond to.
 
         """
         _LOGGER.debug("Responding with: %s", message.text)
 
         async with aiohttp.ClientSession() as session:
             data = {}
-            data["chat_id"] = target if target else message.target["id"]
+            data["chat_id"] = target["id"]
             data["text"] = message.text
             resp = await session.post(self.build_url("sendMessage"),
                                       data=data)
