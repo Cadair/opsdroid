@@ -3,8 +3,7 @@ import asyncio
 import logging
 import aiohttp
 
-
-from opsdroid.connector import Connector
+from opsdroid.connector import Connector, register_event
 from opsdroid.events import Message
 
 
@@ -162,7 +161,8 @@ class ConnectorTelegram(Connector):
 
             await asyncio.sleep(self.update_interval)
 
-    async def respond(self, message, room=None):
+    @register_event(Message)
+    async def send_message(self, message, target=None):
         """Respond with a message.
 
         Args:
@@ -174,7 +174,7 @@ class ConnectorTelegram(Connector):
 
         async with aiohttp.ClientSession() as session:
             data = {}
-            data["chat_id"] = message.room["id"]
+            data["chat_id"] = target if target else message.target["id"]
             data["text"] = message.text
             resp = await session.post(self.build_url("sendMessage"),
                                       data=data)
