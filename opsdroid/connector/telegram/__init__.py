@@ -161,19 +161,18 @@ class ConnectorTelegram(Connector):
             await asyncio.sleep(self.update_interval)
 
     @register_event(Message)
-    async def send_message(self, message, target):
+    async def send_message(self, message):
         """Respond with a message.
 
         Args:
             message (object): An instance of Message.
-            target (string): Name of the room to respond to.
 
         """
         _LOGGER.debug("Responding with: %s", message.text)
 
         async with aiohttp.ClientSession() as session:
             data = {}
-            data["chat_id"] = target["id"]
+            data["chat_id"] = message.target["id"]
             data["text"] = message.text
             resp = await session.post(self.build_url("sendMessage"),
                                       data=data)
