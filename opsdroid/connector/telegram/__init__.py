@@ -106,7 +106,7 @@ class ConnectorTelegram(Connector):
                 else:
                     message.text = "Sorry, you're not allowed " \
                                    "to speak with this bot."
-                    await self.respond(message)
+                    await self.send(message)
                 self.latest_update = result["update_id"] + 1
 
     async def _get_messages(self):

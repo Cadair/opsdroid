@@ -120,8 +120,8 @@ class TestParserRecastAi(asynctest.TestCase):
             opsdroid.skills.append(match_recastai('greetings')(mock_skill))
 
             mock_connector = amock.MagicMock()
-            mock_connector.respond = amock.CoroutineMock()
-            message = Message("user", "default", mock_connector, "Hello")
+            mock_connector.send = amock.CoroutineMock()
+            message = Message("Hello", "user", "default", mock_connector)
 
             with amock.patch.object(recastai, 'call_recastai') as \
                     mocked_call_recastai:
@@ -168,7 +168,7 @@ class TestParserRecastAi(asynctest.TestCase):
             opsdroid.skills.append(match_recastai('greetings')(mock_skill))
 
             mock_connector = amock.CoroutineMock()
-            message = Message("user", "default", mock_connector, "")
+            message = Message("", "user", "default", mock_connector)
 
             with amock.patch.object(recastai, 'call_recastai') as \
                     mocked_call_recastai:
@@ -193,10 +193,10 @@ class TestParserRecastAi(asynctest.TestCase):
 
             mock_connector = amock.CoroutineMock()
             message = Message(
+                "kdjiruetosakdg",
                 "user",
                 "default",
-                mock_connector,
-                "kdjiruetosakdg")
+                mock_connector)
 
             with amock.patch.object(recastai, 'call_recastai') as \
                     mocked_call_recastai:
@@ -237,7 +237,7 @@ class TestParserRecastAi(asynctest.TestCase):
             opsdroid.skills.append(match_recastai('intent')(mock_skill))
 
             mock_connector = amock.CoroutineMock()
-            message = Message("user", "default", mock_connector, "Hello")
+            message = Message("Hello", "user", "default", mock_connector)
 
             with amock.patch.object(recastai, 'call_recastai') as \
                     mocked_call_recastai:
@@ -281,7 +281,7 @@ class TestParserRecastAi(asynctest.TestCase):
             opsdroid.skills.append(match_recastai('greetings')(mock_skill))
 
             mock_connector = amock.CoroutineMock()
-            message = Message("user", "default", mock_connector, "Hello")
+            message = Message("Hello", "user", "default", mock_connector)
 
             with amock.patch.object(recastai, 'call_recastai') \
                     as mocked_call:
