@@ -1,10 +1,12 @@
 """Classes to describe different kinds of possible event."""
-
+import io
 import asyncio
 from abc import ABC
 import urllib.request
 from random import randrange
 from datetime import datetime
+
+import PIL.Image
 
 from opsdroid.helper import get_opsdroid
 
@@ -161,7 +163,7 @@ class Message(Event):
             if isinstance(response, Message):
                 await self._typing_delay(response.text)
 
-        await super().respond(response)
+        return await super().respond(response)
 
 
 class Typing(Event):  # pragma: nocover
@@ -202,12 +204,15 @@ class File(Event):
     """Event class to represent arbitrary files as bytes."""
 
     def __init__(self, file_bytes=None, url=None,
+                 name=None, mimetype="text/plain",
                  *args, **kwargs):  # noqa: D107
         if not (file_bytes or url) or (file_bytes and url):
             raise ValueError("Either file_bytes or url must be specified")
 
         super().__init__(*args, **kwargs)
 
+        self.name = name
+        self._mimetype = mimetype
         self._file_bytes = file_bytes
         self.url = url
 
@@ -221,16 +226,39 @@ class File(Event):
 
         return self._file_bytes
 
+    @property
+    def mimetype(self):
+        return self._mimetype
+
 
 class Image(File):
     """Event class specifically for image files."""
 
-    def __init__(self, image_bytes=None, image_url=None,
-                 *args, **kwargs):  # noqa: D107
-        super().__init__(file_bytes=image_bytes, url=image_url,
-                         *args, **kwargs)
+    def __init__(self, image_bytes=None, url=None,
+                 name=None, *args, **kwargs):  # noqa: D107
+        super().__init__(file_bytes=image_bytes, url=url,
+                         name=name, *args, **kwargs)
+        self._pil_image = None
 
     @property
     def image_bytes(self):  # noqa: D401
         """The `bytes` representation of this image."""
         return self.file_bytes
+
+    @property
+    def pil_image(self):
+        """Represent this Image as a PIL.Image object."""
+        if not self._pil_image:
+            stream = io.BytesIO(self.image_bytes)
+            self._pil_image = PIL.Image.open(stream)
+
+        return self._pil_image
+
+    @property
+    def mimetype(self):
+        """Use image_bytes to determine the mime type."""
+        return PIL.Image.MIME[self.pil_image.format]
+
+    @property
+    def dimensions(self):
+        return self.pil_image.size

@@ -112,7 +112,13 @@ class OpsDroid():
     @staticmethod
     def handle_async_exception(loop, context):
         """Handle exceptions from async coroutines."""
-        _LOGGER.error(_("Caught exception"))
+        if "future" in context:
+            try:
+                context['future'].result()
+            except Exception:
+                _LOGGER.exception(_("Caught exception"))
+        else:
+            _LOGGER.error(_("Caught exception"))
         _LOGGER.error(context)
 
     def is_running(self):
