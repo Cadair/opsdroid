@@ -492,45 +492,54 @@ class TestConnectorSlackAsync(asynctest.TestCase):
                 self.assertFalse(patched_request.called)
 
 
-class TestEventCreatorAsync(asynctest.TestCase):
-    def setUp(self):
-        self.connector = ConnectorSlack({"token": "abc123"}, opsdroid=OpsDroid())
+@pytest.fixture
+def slackconnector(opsdroid, mocker):
+    connector = ConnectorSlack({'token': '1234'}, opsdroid=opsdroid)
+    connector.slack_rtm._connect_and_read = amock.CoroutineMock()
+    connector.slack.api_call = amock.CoroutineMock()
+    connector.opsdroid.web_server = amock.CoroutineMock()
+    connector.opsdroid.web_server.web_app = amock.CoroutineMock()
+    connector.opsdroid.web_server.web_app.router = amock.CoroutineMock()
+    connector.opsdroid.web_server.web_app.router.add_post = amock.CoroutineMock()
 
-    @property
-    def message_event(self):
-        return {
-            "text": "Hello World",
-            "user": "U9S8JGF45",
-            "team": "T9T6EKEEB",
-            "source_team": "T9T6EKEEB",
-            "user_team": "T9T6EKEEB",
-            "channel": "C9S8JGM2R",
-            "event_ts": "1582838099.000600",
-            "ts": "1582838099.000600",
-        }
+    yield connector
 
-    @property
-    def event_creator(self):
-        return slackevents.SlackEventCreator(self.connector, self.connector.slack_rtm)
+    # Make sure we clean up the slack RTMClient as well
+    slack.RTMClient._callbacks = collections.defaultdict(list)
 
-    async def test_create_message(self):
-        with amock.patch(
-            "opsdroid.connector.slack.ConnectorSlack.lookup_username"
-        ) as lookup, amock.patch("opsdroid.core.OpsDroid.parse") as parse:
-            lookup.return_value = asyncio.Future()
-            lookup.return_value.set_result({"name": "testuser"})
+@pytest.fixture
+def message_event():
+    return {
+        "text": "Hello World",
+        "user": "U9S8JGF45",
+        "team": "T9T6EKEEB",
+        "source_team": "T9T6EKEEB",
+        "user_team": "T9T6EKEEB",
+        "channel": "C9S8JGM2R",
+        "event_ts": "1582838099.000600",
+        "ts": "1582838099.000600",
+    }
 
-            await self.connector.slack_rtm._dispatch_event(
-                "message", self.message_event
-            )
-            (called_event,), _ = parse.call_args
-            self.assertTrue(isinstance(called_event, events.Message))
-            self.assertTrue(called_event.text == self.message_event["text"])
-            self.assertTrue(called_event.user == "testuser")
-            self.assertTrue(called_event.user_id == self.message_event["user"])
-            self.assertTrue(called_event.target == self.message_event["channel"])
-            self.assertTrue(called_event.event_id == self.message_event["ts"])
-            self.assertTrue(called_event.raw_event == self.message_event)
+
+@pytest.mark.asyncio
+async def test_create_message(slackconnector, message_event, mocker):
+    mocker.patch(
+        "opsdroid.connector.slack.ConnectorSlack.lookup_username"
+    ) as lookup, amock.patch("opsdroid.core.OpsDroid.parse") as parse:
+        lookup.return_value = asyncio.Future()
+        lookup.return_value.set_result({"name": "testuser"})
+
+        await self.connector.slack_rtm._dispatch_event(
+            "message", self.message_event
+        )
+        (called_event,), _ = parse.call_args
+        self.assertTrue(isinstance(called_event, events.Message))
+        self.assertTrue(called_event.text == self.message_event["text"])
+        self.assertTrue(called_event.user == "testuser")
+        self.assertTrue(called_event.user_id == self.message_event["user"])
+        self.assertTrue(called_event.target == self.message_event["channel"])
+        self.assertTrue(called_event.event_id == self.message_event["ts"])
+        self.assertTrue(called_event.raw_event == self.message_event)
 
     @property
     def bot_message_event(self):
