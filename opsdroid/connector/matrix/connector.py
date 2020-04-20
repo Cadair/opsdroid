@@ -5,7 +5,7 @@ import json
 import logging
 import functools
 from concurrent.futures import CancelledError
-from urllib.parse import urlparse
+from urllib.parse import urlparse, quote
 
 import aiohttp
 
@@ -490,4 +490,47 @@ class ConnectorMatrix(Connector):
             state_event.key,
             state_event.content,
             state_key=state_event.state_key,
+        )
+
+    async def _get_pinned_events(self, room_id):
+        try:
+            pinned_messages = await self.connection._send(
+                "GET", f"/rooms/{quote(room_id)}/state/m.room.pinned_events"
+            )
+            return pinned_messages.get("content", {}).get("pinned", [])
+        except MatrixRequestError as e:
+            if e.code == 404:
+                return []
+            raise e
+
+    @register_event(events.PinMessage)
+    @ensure_room_id_and_send
+    async def _pin_event(self, event):
+        pinned_messages = await self._get_pinned_events(event.target)
+
+        linked_event_id = event.linked_event
+        if isinstance(event.linked_event, events.Message):
+            linked_event_id = event.linked_event.event_id
+
+        pinned_messages.append(linked_event_id)
+
+        content = {"pinned": pinned_messages}
+        return await self.connection.send_state_event(
+            event.target, "m.room.pinned_events", content
+        )
+
+    @register_event(events.UnpinMessage)
+    @ensure_room_id_and_send
+    async def _unpin_event(self, event):
+        pinned_messages = await self._get_pinned_events(event.target)
+
+        linked_event_id = event.linked_event
+        if isinstance(event.linked_event, Message):
+            linked_event_id = event.linked_event.event_id
+
+        pinned_messages.remove(linked_event_id)
+
+        content = {"pinned": pinned_messages}
+        return await self.connection.send_state_event(
+            event.target, "m.room.pinned_events", content
         )
