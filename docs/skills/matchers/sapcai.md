@@ -43,8 +43,7 @@ Let's have a look at how you can use this parser and the `match_sapcai` decorato
 
 The `match_sapcai` decorator takes one parameter (the name of the intent to match), any skill (function or class method) decorated with this matcher, will trigger that skill.
 
-```eval_rst
-.. autofunction:: opsdroid.matchers.match_sapcai
+```{autofunction} opsdroid.matchers.match_sapcai
 ```
 
 ### [Example 1](#example1)

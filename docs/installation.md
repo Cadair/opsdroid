@@ -1,7 +1,6 @@
 # Installation
 
-```eval_rst
-.. contents::
+```{contents}
 ```
 
 ## Quickstart

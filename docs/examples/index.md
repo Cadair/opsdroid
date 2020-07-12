@@ -4,10 +4,9 @@ This section contains examples of the many things you can do with skills in opsd
 
  You can also find detailed information on how skills are structured in the [opsdroid documentation](../skills/index).
 
-```eval_rst
-.. toctree::
-   :maxdepth: 1
+```{toctree}
+:maxdepth: 1
 
-   how-are-you
-   weather
+how-are-you
+weather
 ```

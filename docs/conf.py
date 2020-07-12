@@ -35,6 +35,7 @@ extensions = [
     "sphinx.ext.autodoc",
     "sphinx.ext.napoleon",
     "sphinx_click.ext",
+    "myst_parser",
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -63,21 +64,3 @@ html_theme_options = {
     "font_family": "'Montserrat', sans-serif",
     "code_font_family": "'Fira Code', monospace",
 }
-
-# -- Recommonmark ------------------------------------------------------------
-
-github_doc_root = "https://github.com/rtfd/recommonmark/tree/master/doc/"
-
-
-def setup(app):
-    app.add_config_value(
-        "recommonmark_config",
-        {
-            "url_resolver": lambda url: github_doc_root + url,
-            "auto_toc_tree_section": "Contents",
-        },
-        True,
-    )
-    app.add_transform(AutoStructify)
-    app.add_source_suffix(".md", "markdown")
-    app.add_source_parser(CommonMarkParser)

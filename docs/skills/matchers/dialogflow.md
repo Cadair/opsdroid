@@ -45,10 +45,10 @@ prsers:
 
 This will make the parser to use the Portuguese language when matching the string to an intent or an action.
 
-```eval_rst
-.. autofunction:: opsdroid.matchers.match_dialogflow_action
+```{autofunction} opsdroid.matchers.match_dialogflow_action
+```
 
-.. autofunction:: opsdroid.matchers.match_dialogflow_intent
+```{autofunction} opsdroid.matchers.match_dialogflow_intent
 ```
 
 

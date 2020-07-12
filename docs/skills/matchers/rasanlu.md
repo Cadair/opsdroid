@@ -24,13 +24,11 @@ parsers:
 
 Rasa NLU is also trained via the API and so opsdroid can do the training for you if you provide an intents [markdown file](https://rasa.com/docs/rasa/nlu/training-data-format/#data-formats) along with your skill. This file must contain headers in the format `## intent:<intent name>` followed by a list of example phrases for that intent. Rasa NLU will then use those examples to build a statistical model for matching new and unseen variations on those sentences.
 
-```eval_rst
-.. warning::
+```{warning}
    Rasa NLU requires 4GB of memory, 2GB for training models and 2GB for serving requests. If you do not provide enough it will hang and cause timeouts in opsdroid.
 ```
 
-```eval_rst
-.. autofunction:: opsdroid.matchers.match_rasanlu
+```{autofunction} opsdroid.matchers.match_rasanlu
 ```
 
 ## [Example 1](#example1)
