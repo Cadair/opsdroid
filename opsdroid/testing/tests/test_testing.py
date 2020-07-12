@@ -33,8 +33,7 @@ async def test_external_api_mock_server(session):
     mock_api.add_response("/fail", "POST", None, 400)
     assert len(mock_api.responses) == 2
 
-    async def test():
-        """A closure to test the runner."""
+    async with mock_api:
         assert mock_api.status == "running"
         assert mock_api.base_url == "http://localhost:8089"
 
@@ -54,10 +53,6 @@ async def test_external_api_mock_server(session):
         with pytest.raises(RuntimeError):
             mock_api.reset()
 
-        return True  # For assetion of run_test to test return is passed along
-
-    assert mock_api.status == "stopped"
-    assert await mock_api.run_test(test)
     assert mock_api.status == "stopped"
 
     mock_api.reset()

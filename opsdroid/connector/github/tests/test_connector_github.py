@@ -9,7 +9,7 @@ from opsdroid.cli.start import configure_lang
 from opsdroid.connector.github import ConnectorGitHub
 from opsdroid.events import Message
 from opsdroid.matchers import match_event
-from opsdroid.testing import call_endpoint, run_unit_test
+from opsdroid.testing import call_endpoint, running_opsdroid
 
 
 configure_lang({})
@@ -52,20 +52,18 @@ async def test_connect(connector, mock_api):
         "/user", "GET", get_response_path("github_user.json"), status=200
     )
 
-    async def test():
+    async with mock_api:
         await connector.connect()
 
-        assert mock_api.called("/user")
-        assert mock_api.call_count("/user") == 1
+    assert mock_api.called("/user")
+    assert mock_api.call_count("/user") == 1
 
-        request = mock_api.get_request("/user")
-        assert "Authorization" in request.headers
-        assert "abc123" in request.headers["Authorization"]
+    request = mock_api.get_request("/user")
+    assert "Authorization" in request.headers
+    assert "abc123" in request.headers["Authorization"]
 
-        # Populated by the call to /user
-        assert connector.github_username == "opsdroid"
-
-    await mock_api.run_test(test)
+    # Populated by the call to /user
+    assert connector.github_username == "opsdroid"
 
 
 @pytest.mark.asyncio
@@ -77,11 +75,10 @@ async def test_connect_failure(connector, mock_api, caplog):
         status=401,
     )
 
-    async def test():
+    async with mock_api:
         await connector.connect()
-        assert "Bad credentials" in caplog.text
 
-    await mock_api.run_test(test)
+    assert "Bad credentials" in caplog.text
 
 
 @pytest.mark.asyncio
@@ -107,7 +104,7 @@ async def test_send(opsdroid, connector, mock_api):
     api_url = f"/repos/{org}/{repo}/issues/{issue}/comments"
     mock_api.add_response(api_url, "POST", None, status=201)
 
-    async def test():
+    async with mock_api:
         await opsdroid.send(
             Message(
                 text="test",
@@ -116,9 +113,8 @@ async def test_send(opsdroid, connector, mock_api):
                 connector=connector,
             )
         )
-        assert mock_api.called(api_url)
 
-    await mock_api.run_test(test)
+    assert mock_api.called(api_url)
 
 
 @pytest.mark.asyncio
@@ -129,7 +125,7 @@ async def test_send_failure(opsdroid, connector, mock_api, caplog):
         api_url, "POST", get_response_path("github_send_failure.json"), status=400
     )
 
-    async def test():
+    async with mock_api:
         await opsdroid.send(
             Message(
                 text="test",
@@ -138,10 +134,9 @@ async def test_send_failure(opsdroid, connector, mock_api, caplog):
                 connector=connector,
             )
         )
-        assert mock_api.called(api_url)
-        assert "some error" in caplog.text
 
-    await mock_api.run_test(test)
+    assert mock_api.called(api_url)
+    assert "some error" in caplog.text
 
 
 @pytest.mark.asyncio
@@ -151,7 +146,7 @@ async def test_do_not_send_to_self(opsdroid, connector, mock_api):
     mock_api.add_response(api_url, "POST", None, status=201)
     connector.github_username = "opsdroid-bot"
 
-    async def test():
+    async with mock_api:
         await opsdroid.send(
             Message(
                 text="test",
@@ -160,9 +155,8 @@ async def test_do_not_send_to_self(opsdroid, connector, mock_api):
                 connector=connector,
             )
         )
-        assert not mock_api.called(api_url)
 
-    await mock_api.run_test(test)
+    assert not mock_api.called(api_url)
 
 
 @pytest.mark.asyncio
@@ -180,16 +174,15 @@ async def test_receive_comment(opsdroid, connector, mock_api):
 
     opsdroid.register_skill(test_skill, config={"name": "test"})
 
-    async def test():
+    async with mock_api:
         resp = await call_endpoint(
             opsdroid,
             "/connector/github",
             "POST",
             data=get_webhook_payload("github_comment_payload.json"),
         )
-        assert resp.status == 201
 
-    await mock_api.run_test(run_unit_test, opsdroid, test)
+    assert resp.status == 201
 
 
 @pytest.mark.asyncio
@@ -207,16 +200,16 @@ async def test_receive_pr(opsdroid, connector, mock_api):
 
     opsdroid.register_skill(test_skill, config={"name": "test"})
 
-    async def test():
+    print(mock_api.base_url)
+    async with mock_api:
         resp = await call_endpoint(
             opsdroid,
             "/connector/github",
             "POST",
             data=get_webhook_payload("github_pr_payload.json"),
         )
-        assert resp.status == 201
 
-    await mock_api.run_test(run_unit_test, opsdroid, test)
+    assert resp.status == 201
 
 
 @pytest.mark.asyncio
@@ -234,16 +227,15 @@ async def test_receive_issue(opsdroid, connector, mock_api):
 
     opsdroid.register_skill(test_skill, config={"name": "test"})
 
-    async def test():
+    async with mock_api:
         resp = await call_endpoint(
             opsdroid,
             "/connector/github",
             "POST",
             data=get_webhook_payload("github_issue_payload.json"),
         )
-        assert resp.status == 201
 
-    await mock_api.run_test(run_unit_test, opsdroid, test)
+    assert resp.status == 201
 
 
 @pytest.mark.asyncio
@@ -256,16 +248,15 @@ async def test_receive_label(opsdroid, connector, mock_api):
     test_skill = match_event(Message)(CoroutineMock())
     opsdroid.register_skill(test_skill, config={"name": "test"})
 
-    async def test():
+    async with mock_api:
         resp = await call_endpoint(
             opsdroid,
             "/connector/github",
             "POST",
             data=get_webhook_payload("github_label_payload.json"),
         )
-        assert resp.status == 200
 
-    await mock_api.run_test(run_unit_test, opsdroid, test)
+    assert resp.status == 200
     assert not test_skill.called
 
 
@@ -279,14 +270,13 @@ async def test_receive_status(opsdroid, connector, mock_api):
     test_skill = match_event(Message)(CoroutineMock())
     opsdroid.register_skill(test_skill, config={"name": "test"})
 
-    async def test():
+    async with mock_api:
         resp = await call_endpoint(
             opsdroid,
             "/connector/github",
             "POST",
             data=get_webhook_payload("github_status_payload.json"),
         )
-        assert resp.status == 201
 
-    await mock_api.run_test(run_unit_test, opsdroid, test)
+    assert resp.status == 201
     assert not test_skill.called

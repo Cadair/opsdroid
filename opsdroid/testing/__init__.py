@@ -1,6 +1,7 @@
 """Utilities for use when testing."""
 import pytest
 
+from contextlib import asynccontextmanager
 import asyncio
 import aiohttp
 from aiohttp import web
@@ -45,24 +46,14 @@ class ExternalAPIMockServer:
                 mock_api = ExternalAPIMockServer()
                 mock_api.add_response("/test", "GET", None, 200)
 
-                # Create a closure function. We will have our mock_api run this concurrently with the
-                # web server later.
-                async def test_closure():
+                async with mock_api:
                     # Make an HTTP request to our mock_api
                     async with aiohttp.ClientSession() as session:
                         async with session.get(f"{mock_api.base_url}/test") as resp:
 
                             # Assert that it gives the expected responses
                             assert resp.status == 200
-                            assert mock_api.called("/test")
-
-                    # Return True to we can ensure the closure was run
-                    return True
-
-                # Run the test closure. This will start the web server, and once it is running await
-                # the closure. Then when the closure finishes the server will be stopped again and the
-                # return from the closure will be passed back.
-                assert await mock_api.run_test(test)
+                assert mock_api.called("/test")
 
     """
 
@@ -139,33 +130,14 @@ class ExternalAPIMockServer:
             self.responses[route] = [(status, response)]
             self.app.add_routes(routes)
 
-    async def run_test(
-        self, test_coroutine: Awaitable, *args: List, **kwargs: Dict
-    ) -> Any:
-        """Run a test against the web server.
+    async def __aenter__(self):
+        if self.status == "stopped":
+            await self._start()
+        while self.status != "running":
+            await asyncio.sleep(0.1)
 
-        This method will concurrently start the web server and a test coroutine.
-        Once the web server is running the coroutine will be called.
-
-        Args:
-            test_coroutine: A coroutine to be called.
-            *args: Args to be passed to the coroutine.
-            **kwargs: Kwargs to be passed to the coroutine.
-
-        Returns:
-            The return from the coroutine.
-
-        """
-
-        async def _run():
-            while self.status != "running":
-                await asyncio.sleep(0.1)
-            output = await test_coroutine(*args, **kwargs)
-            await self._stop()
-            return output
-
-        run_output, _ = await asyncio.gather(_run(), self._start())
-        return run_output
+    async def __aexit__(self, exc_type, exc, tb):
+        await self._stop()
 
     def reset(self) -> None:
         """Reset the mock back to a clean state."""
@@ -226,23 +198,16 @@ class ExternalAPIMockServer:
         """
         return self._payloads[route][idx]
 
-
-async def run_unit_test(
-    opsdroid: OpsDroid, test: Awaitable, *args: List, **kwargs: Dict
-) -> Any:
+@asynccontextmanager
+async def running_opsdroid(opsdroid: OpsDroid):
     """Run a unit test function against opsdroid.
 
     This method should be used when testing on a loaded but stopped instance of opsdroid.
-    The instance will be started concurrently with the test runner. The test runner
-    will block until opsdroid is ready and then the test will be called. Once the test has returned
-    opsdroid will be stopped and unloaded.
+    The instance will be started when the context manager is entered.
+    When the context manager exits opsdroid will be stopped and unloaded.
 
     Args:
         opsdroid: A loaded but stopped instance of opsdroid.
-        test: A test to execute concurrently with opsdroid once it has been started.
-
-    Returns:
-        Passes on the return of the test coroutine.
 
     Examples:
         An example of running a coroutine test against opsdroid::
@@ -263,26 +228,13 @@ async def run_unit_test(
                 # Check that opsdroid is not currently running
                 assert not opsdroid.is_running()
 
-                # Define an awaitable closure which asserts that
-                # opsdroid is now running
-                async def test():
+                async with running_opsdroid(opsdroid):
                     assert opsdroid.is_running()
-                    return True  # So that we can assert our run test
-
-                # Run our closure against opsdroid. This will start opsdroid,
-                # await our closure and then stop opsdroid again.
-                assert await run_unit_test(opsdroid, test)
 
     """
-
-    async def runner():
-        await asyncio.sleep(0.5)  # TODO Replace with more robust check
-        result = await test(*args, **kwargs)
-        await opsdroid.stop()
-        return result
-
-    _, output = await asyncio.gather(opsdroid.start(), runner())
-    return output
+    await opsdroid.start()
+    yield
+    await opsdroid.stop()
 
 
 async def call_endpoint(
