@@ -281,8 +281,8 @@ class ConnectorMatrix(Connector):
                             _LOGGER.error(
                                 f"Failed to decrypt event {event}"
                             )  # pragma: nocover
-                        return await self._event_creator.create_event(
-                            event.source, roomid
+                        await self.opsdroid.parse(
+                            await self._event_creator.create_event(event.source, roomid)
                         )
 
     async def listen(self):  # pragma: no cover
@@ -303,10 +303,7 @@ class ConnectorMatrix(Connector):
 
             await self.exchange_keys()
 
-            message = await self._parse_sync_response(response)
-
-            if message:
-                await self.opsdroid.parse(message)
+            await self._parse_sync_response(response)
 
     def lookup_target(self, room):
         """Convert name or alias of a room to the corresponding room ID."""
