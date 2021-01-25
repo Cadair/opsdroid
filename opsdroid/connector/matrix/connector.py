@@ -35,10 +35,45 @@ __all__ = ["ConnectorMatrix"]
 
 
 class MatrixException(Exception):
-    """Wrap a matrix-nio Error in an Exception so it can raised."""
+    """
+    A representation of an error response from the matrix server.
+    """
 
     def __init__(self, nio_error):
-        self.nio_error = nio_error
+        super().__init__()
+        self._nio_error = nio_error
+
+    @property
+    def nio_error(self):
+        """
+        The `nio.responses.ErrorResponse` object.
+        """
+        return self._nio_error
+
+    @property
+    def status_code(self):
+        """
+        The matrix status code of the error.
+        """
+        return self.nio_error.status_code
+
+    @property
+    def message(self):
+        """
+        The matrix error message of the error.
+        """
+        return self.nio_error.message
+
+    @property
+    def http_code(self):
+        """
+        The HTTP code of the response.
+
+        Maybe ``None`` if the transport response isn't defined.
+        """
+        if self.nio_error.transport_response is not None:
+            return self.nio_error.transport_response.status_code
+        return None
 
 
 def ensure_room_id_and_send(func):
