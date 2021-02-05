@@ -75,6 +75,12 @@ class MatrixException(Exception):
             return self.nio_error.transport_response.status_code
         return None
 
+    def __str__(self):
+        return str(self.nio_error)
+
+    def __repr__(self):
+        return repr(self.nio_error)
+
 
 def ensure_room_id_and_send(func):
     """
