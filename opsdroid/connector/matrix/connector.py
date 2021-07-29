@@ -162,7 +162,7 @@ class ConnectorMatrix(Connector):
         self.connection.sync_token = response["next_batch"]
 
         # Emit Invite events for every room in the invite list.
-        for roomid, room in response["rooms"]["invite"].items():
+        for roomid, room in response.get("rooms", {}).get("invite", {}).items():
             # Process the invite list to extract the person who invited us.
             invite_event = [
                 e
@@ -181,7 +181,7 @@ class ConnectorMatrix(Connector):
                 )
             )
 
-        for roomid, room in response["rooms"]["join"].items():
+        for roomid, room in response.get("rooms", {}).get("join", {}).items():
             if "timeline" in room:
                 for event in room["timeline"]["events"]:
                     if event["sender"] != self.mxid:
